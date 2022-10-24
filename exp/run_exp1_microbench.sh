@@ -1,0 +1,103 @@
+#!/bin/bash
+
+DB_DIR="/ssd1/songxin8/thesis/rocksdb/rocksdb/tmp/microbench"                                                      
+RESULT_DIR="/ssd1/songxin8/thesis/rocksdb/rocksdb/exp/exp1_microbench/" 
+
+# in seconds
+#DURATION=900
+DURATION=10
+
+
+clean_up () {
+    echo "Cleaning up. Kernel PID is $EXE_PID, numastat PID is $LOG_PID."
+    # Perform program exit housekeeping
+    kill $LOG_PID
+    kill $EXE_PID
+    exit
+}
+
+clean_cache () { 
+  echo "Clearing caches..."
+  # clean CPU caches 
+  ./tools/clear_cpu_cache
+  # clean page cache 
+  echo 3 > /proc/sys/vm/drop_caches
+}
+
+run_microbench_readrandom () { 
+  OUTFILE=$1 #first argument
+  NODE=$2
+
+  pushd ..
+
+  /usr/bin/time -v /usr/bin/numactl --membind=${NODE} --cpunodebind=0 \
+      -- ./db_bench --benchmarks="readrandom,stats" --use_existing_db=1 --level0_file_num_compaction_trigger=4 --level0_slowdown_writes_trigger=20 --level0_stop_writes_trigger=30 --max_background_jobs=16 --max_write_buffer_number=8 --undefok=use_blob_cache,use_shared_block_and_blob_cache,blob_cache_size,blob_cache_numshardbits,prepopulate_blob_cache,multiread_batched,cache_low_pri_pool_ratio,prepopulate_block_cache \
+      --db=${DB_DIR} --wal_dir=${DB_DIR}/WAL_LOG \
+      --num=262144000 --key_size=20 --value_size=400 --block_size=8192 --cache_size=34359738368 --cache_numshardbits=6 --compression_max_dict_bytes=0 --compression_ratio=0.5 --bytes_per_sync=1048576 --benchmark_write_rate_limit=0 --write_buffer_size=134217728 --target_file_size_base=134217728 --max_bytes_for_level_base=1073741824 --verify_checksum=1 --delete_obsolete_files_period_micros=62914560 --max_bytes_for_level_multiplier=8 --statistics --histogram=1 --memtablerep=skip_list --bloom_bits=10 --open_files=-1 --subcompactions=1 --compaction_style=0 --num_levels=8 --min_level_to_compress=-1 --level_compaction_dynamic_level_bytes=true --pin_l0_filter_and_index_blocks_in_cache=1 --duration=${DURATION} --threads=32 &> ${OUTFILE} &
+
+  # PID of time command
+  TIME_PID=$! 
+  # get PID of actual kernel, which is a child of time. 
+  # This PID is needed for the numastat command
+  EXE_PID=$(pgrep -P $TIME_PID)
+
+  echo "RocksDB PID is ${EXE_PID}"
+  echo "start" > ${OUTFILE}_numastat 
+  while true; do numastat -p $EXE_PID >> ${OUTFILE}_numastat; sleep 5; done &
+  LOG_PID=$!
+
+  echo "Waiting for rocksDB benchmark to complete (PID is ${EXE_PID}). Log is written to ${OUTFILE}, PID is ${LOG_PID}"
+  wait $TIME_PID
+  # kill numastat process
+  kill $LOG_PID
+  popd
+}
+
+run_microbench_scan () { 
+  OUTFILE=$1 #first argument
+  NODE=$2
+
+  pushd ..
+
+  /usr/bin/time -v /usr/bin/numactl --membind=${NODE} --cpunodebind=0 \
+      -- ./db_bench --benchmarks="seekrandom,stats" --use_existing_db=1 --level0_file_num_compaction_trigger=4 --level0_slowdown_writes_trigger=20 --level0_stop_writes_trigger=30 --max_background_jobs=16 --max_write_buffer_number=8 --undefok=use_blob_cache,use_shared_block_and_blob_cache,blob_cache_size,blob_cache_numshardbits,prepopulate_blob_cache,multiread_batched,cache_low_pri_pool_ratio,prepopulate_block_cache \
+      --db=${DB_DIR} --wal_dir=${DB_DIR}/WAL_LOG \
+      --num=262144000 --key_size=20 --value_size=400 --block_size=8192 --cache_size=34359738368 --cache_numshardbits=6 --compression_max_dict_bytes=0 --compression_ratio=0.5 --bytes_per_sync=1048576 --benchmark_write_rate_limit=0 --write_buffer_size=134217728 --target_file_size_base=134217728 --max_bytes_for_level_base=1073741824 --verify_checksum=1 --delete_obsolete_files_period_micros=62914560 --max_bytes_for_level_multiplier=8 --statistics --histogram=1 --memtablerep=skip_list --bloom_bits=10 --open_files=-1 --subcompactions=1 --compaction_style=0 --num_levels=8 --min_level_to_compress=-1 --level_compaction_dynamic_level_bytes=true --pin_l0_filter_and_index_blocks_in_cache=1 --duration=${DURATION} --threads=32 --seek_nexts=10 --reverse_iterator=false &> ${OUTFILE} &
+
+  # PID of time command
+  TIME_PID=$! 
+  # get PID of actual kernel, which is a child of time. 
+  # This PID is needed for the numastat command
+  EXE_PID=$(pgrep -P $TIME_PID)
+
+  echo "RocksDB PID is ${EXE_PID}"
+  echo "start" > ${OUTFILE}_numastat 
+  while true; do numastat -p $EXE_PID >> ${OUTFILE}_numastat; sleep 5; done &
+  LOG_PID=$!
+
+  echo "Waiting for rocksDB benchmark to complete (PID is ${EXE_PID}). Log is written to ${OUTFILE}, PID is ${LOG_PID}"
+  wait $TIME_PID
+  # kill numastat process
+  kill $LOG_PID
+  popd
+}
+
+
+##############
+# Script start
+##############
+trap clean_up SIGHUP SIGINT SIGTERM
+
+[[ $EUID -ne 0 ]] && echo "This script must be run using sudo or as root." && exit 1
+
+mkdir -p $RESULT_DIR
+
+# All allocations on node 0
+clean_cache
+run_microbench_readrandom "${RESULT_DIR}/readrandom_allnode0" $workload 0
+#clean_cache
+#run_microbench_readrandom "${RESULT_DIR}/${workload}_readrandom_allnode1" $workload 1
+clean_cache
+run_microbench_scan "${RESULT_DIR}/scan_allnode0" $workload 0
+#clean_cache
+#run_microbench_scan "${RESULT_DIR}/${workload}_scan_allnode1" $workload 1
