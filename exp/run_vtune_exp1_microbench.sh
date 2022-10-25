@@ -30,11 +30,11 @@ run_microbench_readrandom () {
   VTUNE_MEMACC_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect memory-access \
        -knob sampling-interval=100 -knob analyze-mem-objects=true -knob analyze-openmp=true \
        -knob mem-object-size-min-thres=1048576 \
-       -data-limit=5000 -result-dir ${OUTFILE}_memacc\
+       -data-limit=10000 -result-dir ${OUTFILE}_memacc\
        --app-working-dir=/ssd1/songxin8/thesis/rocksdb/rocksdb/"
 
   VTUNE_HOTSPOT_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect hotspots \
-       -data-limit=5000 -result-dir ${OUTFILE}_hotspot \
+       -data-limit=10000 -result-dir ${OUTFILE}_hotspot \
        --app-working-dir=/ssd1/songxin8/thesis/rocksdb/rocksdb/"
 
   pushd ..
@@ -86,11 +86,11 @@ run_microbench_scan () {
   VTUNE_MEMACC_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect memory-access \
        -knob sampling-interval=100 -knob analyze-mem-objects=true -knob analyze-openmp=true \
        -knob mem-object-size-min-thres=1048576 \
-       -data-limit=5000 -result-dir ${OUTFILE}_memacc \
+       -data-limit=10000 -result-dir ${OUTFILE}_memacc \
        --app-working-dir=/ssd1/songxin8/thesis/rocksdb/rocksdb/"
 
   VTUNE_HOTSPOT_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect hotspots \
-       -data-limit=5000 -result-dir ${OUTFILE}_hotspot \
+       -data-limit=10000 -result-dir ${OUTFILE}_hotspot \
        --app-working-dir=/ssd1/songxin8/thesis/rocksdb/rocksdb/"
 
   pushd ..
