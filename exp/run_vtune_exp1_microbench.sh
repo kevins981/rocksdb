@@ -1,11 +1,11 @@
 #!/bin/bash
 
-DB_DIR="/ssd1/songxin8/thesis/rocksdb/rocksdb/tmp/microbench"                                                      
 RESULT_DIR="/ssd1/songxin8/thesis/rocksdb/vtune/exp1_microbench/" 
+DB_DIR="/ssd1/songxin8/thesis/rocksdb/rocksdb/tmp/microbench"
 
 # in seconds
-#DURATION=900
-DURATION=200
+DURATION=900
+
 clean_up () {
     echo "Cleaning up. Kernel PID is $EXE_PID, numastat PID is $LOG_PID."
     # Perform program exit housekeeping
@@ -29,8 +29,8 @@ run_microbench_readrandom () {
   # setting mem-object-size-min-thres=1MB limit to reduce the size of the vtuen result file on disk.
   VTUNE_MEMACC_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect memory-access \
        -knob sampling-interval=100 -knob analyze-mem-objects=true -knob analyze-openmp=true \
-       -knob mem-object-size-min-thres=1048576\
-       -data-limit=5000 -result-dir ${OUTFILE}_memacc_1Mthresh \
+       -knob mem-object-size-min-thres=1048576 \
+       -data-limit=5000 -result-dir ${OUTFILE}_memacc\
        --app-working-dir=/ssd1/songxin8/thesis/rocksdb/rocksdb/"
 
   VTUNE_HOTSPOT_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect hotspots \
@@ -55,7 +55,11 @@ run_microbench_readrandom () {
       --level_compaction_dynamic_level_bytes=true --pin_l0_filter_and_index_blocks_in_cache=1 \
       --duration=${DURATION} --threads=32 
 
-  clear_cache
+  popd
+  
+  clean_cache
+
+  pushd ..
 
   ${VTUNE_MEMACC_COMMON} -- /usr/bin/numactl --membind=${NODE} --cpunodebind=0 \
       -- ./db_bench --benchmarks="readrandom,stats" --use_existing_db=1 \
@@ -72,8 +76,6 @@ run_microbench_readrandom () {
       --subcompactions=1 --compaction_style=0 --num_levels=8 --min_level_to_compress=-1 \
       --level_compaction_dynamic_level_bytes=true --pin_l0_filter_and_index_blocks_in_cache=1 \
       --duration=${DURATION} --threads=32 
-
-
   popd
 }
 
@@ -83,11 +85,11 @@ run_microbench_scan () {
 
   VTUNE_MEMACC_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect memory-access \
        -knob sampling-interval=100 -knob analyze-mem-objects=true -knob analyze-openmp=true \
-       -knob mem-object-size-min-thres=1048576\
+       -knob mem-object-size-min-thres=1048576 \
        -data-limit=5000 -result-dir ${OUTFILE}_memacc \
        --app-working-dir=/ssd1/songxin8/thesis/rocksdb/rocksdb/"
 
-  VTUNE_HOTSPOT_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect hotspots -\
+  VTUNE_HOTSPOT_COMMON="/opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -collect hotspots \
        -data-limit=5000 -result-dir ${OUTFILE}_hotspot \
        --app-working-dir=/ssd1/songxin8/thesis/rocksdb/rocksdb/"
 
@@ -107,9 +109,13 @@ run_microbench_scan () {
       --statistics --histogram=1 --memtablerep=skip_list --bloom_bits=10 --open_files=-1 \
       --subcompactions=1 --compaction_style=0 --num_levels=8 --min_level_to_compress=-1 \
       --level_compaction_dynamic_level_bytes=true --pin_l0_filter_and_index_blocks_in_cache=1 \
-      --duration=${DURATION} --threads=32 --seek_nexts=10 --reverse_iterator=false &> ${OUTFILE} &
+      --duration=${DURATION} --threads=32 --seek_nexts=10 --reverse_iterator=false 
+
+  popd
   
-  clear_cache
+  clean_cache
+
+  pushd ..
 
   ${VTUNE_MEMACC_COMMON} -- /usr/bin/numactl --membind=${NODE} --cpunodebind=0 \
       -- ./db_bench --benchmarks="seekrandom,stats" --use_existing_db=1 \
@@ -125,7 +131,7 @@ run_microbench_scan () {
       --statistics --histogram=1 --memtablerep=skip_list --bloom_bits=10 --open_files=-1 \
       --subcompactions=1 --compaction_style=0 --num_levels=8 --min_level_to_compress=-1 \
       --level_compaction_dynamic_level_bytes=true --pin_l0_filter_and_index_blocks_in_cache=1 \
-      --duration=${DURATION} --threads=32 --seek_nexts=10 --reverse_iterator=false &> ${OUTFILE} &
+      --duration=${DURATION} --threads=32 --seek_nexts=10 --reverse_iterator=false
 
   popd
 }
@@ -140,12 +146,11 @@ trap clean_up SIGHUP SIGINT SIGTERM
 
 mkdir -p $RESULT_DIR
 
-# All allocations on node 0
-clean_cache
-run_microbench_readrandom "${RESULT_DIR}/readrandom_allnode0" $workload 0
-#clean_cache
-#run_microbench_readrandom "${RESULT_DIR}/${workload}_readrandom_allnode1" $workload 1
 clean_cache
 run_microbench_scan "${RESULT_DIR}/scan_allnode0" $workload 0
-#clean_cache
-#run_microbench_scan "${RESULT_DIR}/${workload}_scan_allnode1" $workload 1
+clean_cache
+run_microbench_scan "${RESULT_DIR}/scan_allnode1" $workload 1
+clean_cache
+run_microbench_readrandom "${RESULT_DIR}/readrandom_allnode0" $workload 0
+clean_cache
+run_microbench_readrandom "${RESULT_DIR}/readrandom_allnode1" $workload 1
