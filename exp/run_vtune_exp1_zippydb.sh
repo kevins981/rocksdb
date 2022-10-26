@@ -6,7 +6,7 @@ DB_DIR="/ssd1/songxin8/thesis/rocksdb/rocksdb/tmp/zippydb/"
 STREADY_STATE_DURATION=900
 # the amount of time it takes for the block cache in DRAM to be full.
 # this value is obtained by monitoring top and measuring the time duration.
-# 32GB block cache on ZippyDB workload takes X s to warmup.
+# 32GB block cache on ZippyDB workload takes approx 1000s to warmup.
 WARMUP_DURATION=1000 
 # need to run the workload for this much time in total. The warmup duration will not be profiled
 TOTAL_DURATION=$(expr $STREADY_STATE_DURATION + $WARMUP_DURATION)
@@ -43,8 +43,6 @@ run_zippydb () {
        --app-working-dir=/ssd1/songxin8/thesis/rocksdb/rocksdb/"
 
   pushd ..
-
-
   ####### hotspot analysis
   ${VTUNE_HOTSPOT_COMMON} -- /usr/bin/numactl --membind=${NODE} --cpunodebind=0 \
       ./db_bench --benchmarks="mixgraph,resetstats,mixgraph,stats" --cache_size=34359738368 \
@@ -77,8 +75,10 @@ run_zippydb () {
 
   ####### memory access analysis
 
+  # Only need to run one mixgraph benchmark, since we do not need to 
+  # resetstats for vtune profiling
   ${VTUNE_MEMACC_COMMON} -- /usr/bin/numactl --membind=${NODE} --cpunodebind=0 \
-      ./db_bench --benchmarks="mixgraph,resetstats,mixgraph,stats" --cache_size=34359738368 \
+      ./db_bench --benchmarks="mixgraph,stats" --cache_size=34359738368 \
       --db=${DB_DIR} --wal_dir=${DB_DIR}/WAL_LOG \
       --cache_numshardbits=6 -use_existing_db=1 -use_direct_io_for_flush_and_compaction=true \
       -use_direct_reads=true -keyrange_dist_a=14.18 -keyrange_dist_b=-2.917 -keyrange_dist_c=0.0164 -keyrange_dist_d=-0.08082 \
@@ -95,7 +95,7 @@ run_zippydb () {
   sleep ${WARMUP_DURATION}
 
   echo "[INFO] Warmup complete. Resuming Vtune profiling."
-  /opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -command resume -r ${OUTFILE}_hotspot
+  /opt/intel/oneapi/vtune/2022.3.0/bin64/vtune -command resume -r ${OUTFILE}_memacc
 
   echo "[INFO] Waiting for vtune to finish."
   wait $VTUNE_PID
@@ -114,5 +114,5 @@ mkdir -p $RESULT_DIR
 
 clean_cache
 run_zippydb "${RESULT_DIR}/zippydb_allnode0" $workload 0
-#clean_cache
-#run_zippydb "${RESULT_DIR}/zippydb_allnode1" $workload 1
+clean_cache
+run_zippydb "${RESULT_DIR}/zippydb_allnode1" $workload 1
