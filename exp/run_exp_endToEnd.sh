@@ -146,9 +146,30 @@ trap clean_up SIGHUP SIGINT SIGTERM
 mkdir -p $RESULT_DIR
 
 # All allocations on node 0
+disable_numa
 for workload in "${WORKLOAD_LIST[@]}"
 do
   clean_cache
   LOGFILE_NAME=$(gen_file_name "rocksdb" "${workload}" "${MEMCONFIG}_allLocal")
   run_app ${LOGFILE_NAME} ${workload} "ALL_LOCAL"
 done
+
+
+# AutoNUMA
+enable_autonuma
+for workload in "${WORKLOAD_LIST[@]}"
+do
+  clean_cache
+  LOGFILE_NAME=$(gen_file_name "rocksdb" "${workload}" "${MEMCONFIG}_autonuma")
+  run_app ${LOGFILE_NAME} ${workload} "AUTONUMA"
+done
+
+# TPP
+enable_tpp
+for workload in "${WORKLOAD_LIST[@]}"
+do
+  clean_cache
+  LOGFILE_NAME=$(gen_file_name "rocksdb" "${workload}" "${MEMCONFIG}_tpp")
+  run_app ${LOGFILE_NAME} ${workload} "TPP"
+done
+
