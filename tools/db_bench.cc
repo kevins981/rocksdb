@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+
 #ifndef GFLAGS
 #include <cstdio>
 int main() {
@@ -15,7 +16,24 @@ int main() {
 }
 #else
 #include "rocksdb/db_bench_tool.h"
+#include <iostream>
+#include <pthread.h>
+#include "perf_lfu.cpp"
+
 int main(int argc, char** argv) {
+  // start perf monitornig thread
+  pthread_t perf_thread;
+  int r = pthread_create(&perf_thread, NULL, perf_func, NULL);
+  if (r != 0) {
+    std::cout << "pthread create failed." << std::endl;
+    exit(1);
+  }
+  r = pthread_setname_np(perf_thread, "lfu_perf");
+  if (r != 0) {
+    std::cout << "perf thread set name failed." << std::endl;
+  }
+  std::cout << "perf thread created." << std::endl;
+
   return ROCKSDB_NAMESPACE::db_bench_tool(argc, argv);
 }
 #endif  // GFLAGS

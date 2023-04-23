@@ -279,6 +279,9 @@ ROCKSDB_PLUGIN_JNI_NATIVE_SOURCES = $(foreach plugin, $(ROCKSDB_PLUGINS), $(fore
 ALL_JNI_NATIVE_SOURCES = $(JNI_NATIVE_SOURCES) $(ROCKSDB_PLUGIN_JNI_NATIVE_SOURCES)
 ROCKSDB_PLUGIN_JNI_CXX_INCLUDEFLAGS = $(foreach plugin, $(ROCKSDB_PLUGINS), -I./plugin/$(plugin))
 
+# Kevin edit: include path to perf sampling + TinyLFU headers
+CXXFLAGS += -I${BIGMEMBENCH_COMMON_PATH}/tinylfu
+
 ifneq ($(strip $(ROCKSDB_PLUGIN_PKGCONFIG_REQUIRES)),)
 LDFLAGS := $(LDFLAGS) $(shell pkg-config --libs $(ROCKSDB_PLUGIN_PKGCONFIG_REQUIRES))
 ifneq ($(.SHELLSTATUS),0)
