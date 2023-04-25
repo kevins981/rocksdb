@@ -67,8 +67,7 @@ run_app () {
       -keyrange_num=30 -value_k=0.2615 -value_sigma=25.45 -iter_k=2.517 -iter_sigma=14.236 \
        -mix_get_ratio=0.85 -mix_put_ratio=0.14 -mix_seek_ratio=0.01 \
       -sine_mix_rate_interval_milliseconds=5000 -sine_a=1000 -sine_b=0.000073 -sine_d=45000000 \
-      --perf_level=2 -reads=4200000 -num=2097152000 -key_size=48 --bloom_bits=10 \
-      --write_buffer_size=1073741824 --max_bytes_for_level_base=10737418240 --max_write_buffer_number=40 --open_files=1048575 \
+      --perf_level=2 -reads=4200000 -num=2097152000 -key_size=48 --bloom_bits=10 --open_files=1048575 \
       --statistics --duration=${DURATION} -stats_interval_seconds=5 --threads=${NUM_THREADS} &>> ${OUTFILE_PATH}
       ;;
     "socialgraph")
@@ -81,8 +80,7 @@ run_app () {
       -keyrange_num=30 -value_k=0.923 -value_sigma=226.409 -value_theta=0 -iter_k=0.0819 -iter_sigma=1.747 \
       -mix_get_ratio=0.85 -mix_put_ratio=0.14 -mix_seek_ratio=0.01 \
       -sine_mix_rate_interval_milliseconds=5000 -sine_a=147.9 -sine_b=0.000083 -sine_c=-1.734 -sine_d=10642000  \
-      --perf_level=2 -reads=4200000 -num=2097152000 -key_size=48 --bloom_bits=10 \
-      --write_buffer_size=1073741824 --max_bytes_for_level_base=10737418240 --max_write_buffer_number=40 --open_files=1048575 \
+      --perf_level=2 -reads=4200000 -num=2097152000 -key_size=48 --bloom_bits=10 --open_files=1048575 \
       --statistics --duration=${DURATION} -stats_interval_seconds=5 --threads=${NUM_THREADS} &>> ${OUTFILE_PATH}
       ;;
     *)
