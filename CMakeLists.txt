@@ -586,6 +586,14 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
+# Kevin edit: include path to perf sampling + TinyLFU headers
+if (NOT "$ENV{BIGMEMBENCH_COMMON_PATH}" STREQUAL "")
+    set(BIGMEMBENCH_COMMON_PATH "$ENV{BIGMEMBENCH_COMMON_PATH}" CACHE INTERNAL "Copied from environment variable")
+endif()
+message("BIGMEMBENCH_COMMON_PATH = ${BIGMEMBENCH_COMMON_PATH}")
+
+include_directories(${BIGMEMBENCH_COMMON_PATH}/tinylfu)
+
 if(USE_COROUTINES)
   if(USE_FOLLY OR USE_FOLLY_LITE)
     message(FATAL_ERROR "Please specify exactly one of USE_COROUTINES,"
