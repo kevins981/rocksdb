@@ -26,36 +26,12 @@ run_app () {
 
   OUTFILE_PATH="${RESULT_DIR}/${OUTFILE_NAME}"
 
-  if [[ "$CONFIG" == "ALL_LOCAL" ]]; then
-    # All local config: place both data and compute on node 1
-    COMMAND_COMMON="/usr/bin/time -v /usr/bin/numactl --membind=0 --cpunodebind=0"
-  elif [[ "$CONFIG" == "EDGES_ON_REMOTE" ]]; then
-    # place edges array on node 1, rest on node 0
-    COMMAND_COMMON="/usr/bin/time -v /usr/bin/numactl --membind=0 --cpunodebind=0"
-  elif [[ "$CONFIG" == "TPP" ]]; then
-    # only use node 0 CPUs and let TPP decide how memory is placed
-    COMMAND_COMMON="/usr/bin/time -v /usr/bin/numactl --cpunodebind=0"
-  elif [[ "$CONFIG" == "AUTONUMA" ]]; then
-    COMMAND_COMMON="/usr/bin/time -v /usr/bin/numactl --cpunodebind=0"
-  elif [[ "$CONFIG" == "LFU" ]]; then
-    COMMAND_COMMON="/usr/bin/time -v /usr/bin/numactl --cpunodebind=0"
-  else
-    echo "Error! Undefined configuration $CONFIG"
-    exit 1
-  fi
+  COMMAND_COMMON=$(get_cmd_prefix $CONFIG)
 
-  echo "Start" > $OUTFILE_PATH
-  echo "=======================" >> $OUTFILE_PATH
-  echo "NUMA hardware config " >> $OUTFILE_PATH
-  NUMACTL_OUT=$(numactl -H)
-  echo "$NUMACTL_OUT" >> $OUTFILE_PATH
+  write_frontmatter $OUTFILE_PATH
 
-  echo "=======================" >> $OUTFILE_PATH
-  echo "Migration counters" >> $OUTFILE_PATH
-  MIGRATION_STAT=$(grep -E "pgdemote|pgpromote|pgmigrate" /proc/vmstat)
-  echo "$MIGRATION_STAT" >> $OUTFILE_PATH
-  echo "=======================" >> $OUTFILE_PATH
-
+  start_perf_stat $PERF_STAT_INTERVAL $OUTFILE_PATH
+  echo "Perf stat pid is $PERF_STAT_PID"
 
   case $WORKLOAD in
     # both sine_d increased by x10000 to to speedup the benchmarking, as per 
@@ -125,11 +101,8 @@ run_app () {
       ;;
   esac
 
-  echo "=======================" >> $OUTFILE_PATH
-  echo "Migration counters" >> $OUTFILE_PATH
-  MIGRATION_STAT=$(grep -E "pgdemote|pgpromote|pgmigrate" /proc/vmstat)
-  echo "$MIGRATION_STAT" >> $OUTFILE_PATH
-  echo "=======================" >> $OUTFILE_PATH
+  write_backmatter $OUTFILE_PATH
+  kill_perf_stat
 
 }
 
